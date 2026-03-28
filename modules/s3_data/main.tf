@@ -1,0 +1,13 @@
+resource "aws_s3_bucket" "data_bucket" {
+    bucket = var.bucket_name
+
+    tags = var.tags
+}
+
+resource "aws_s3_bucket_versioning" "versioning_bucket" {
+  bucket = aws_s3_bucket.data_bucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
