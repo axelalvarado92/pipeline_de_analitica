@@ -39,9 +39,10 @@ data "aws_iam_policy_document" "lambda_policy_doc" {
         actions = [
             "kinesis:GetRecords",
             "kinesis:GetShardIterator",
-            "kinesis:DescribeStream",
             "kinesis:ListShards",
-            "kinesis:DescribeStreamSummary"
+            "kinesis:DescribeStream",
+            "kinesis:DescribeStreamSummary",
+            "kinesis:ListStreams"
         ]
         
         resources = var.kinesis_arns
@@ -50,26 +51,58 @@ data "aws_iam_policy_document" "lambda_policy_doc" {
      sid = "KMSDecryptAccess"
 
       actions = [
-        "kms:Decrypt"
+        "kms:Decrypt",
+        "kms:GenerateDataKey"
     ]
 
         resources = [var.kms_key_arn]
     }
 
     statement {
-      sid = "S3Access"
+      sid = "S3ObjectAccess"
 
       actions = [
         "s3:PutObject",
-        "s3:GetObject",
+        "s3:GetObject"
+      ]
+
+      resources = [
+    "${var.bucket_arn}/processed/*"
+     ]
+
+    condition {
+      test = "StringEquals"
+      variable = "s3:x-amz-server-side-encryption"  ### Obliga a que todo lo que escriba Lambda esté encriptado
+      values = ["aws:kms"]
+    }
+  }
+
+    statement {
+      sid = "S3ListBucket"
+
+      actions = [
         "s3:ListBucket"
       ]
 
       resources = [
-        "${var.bucket_arn}/*",
         var.bucket_arn
       ]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"       ### Lambda puede acceder a S3, 
+      values   = ["processed/*"]   ### PERO solo a objetos que estén dentro de esta carpeta (prefijo)
     }
+  }
+  statement {
+    effect = "Allow"
+
+     actions = [
+    "glue:StartCrawler"
+    ]
+
+    resources = ["*"] 
+ }
 }
 
 resource "aws_iam_policy" "kinesis_policy" {
@@ -89,5 +122,13 @@ resource "aws_iam_role_policy_attachment" "kinesis_attachment" {
 resource "aws_iam_role_policy_attachment" "lambda_logs" {
     role       = aws_iam_role.lambda_role.name
     policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_lambda_permission" "allow_s3" {
+  statement_id  = "AllowS3Invoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.trigger_glue.function_name
+  principal     = "s3.amazonaws.com"
+  source_arn    = var.bucket_arn
 }
 

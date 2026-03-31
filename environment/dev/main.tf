@@ -30,11 +30,26 @@ module "kinesis_event_processor" {
     }
 }
 
+module "trigger_glue" {
+    source = "../../modules/trigger_glue"
+    glue_crawler_name = module.glue.glue_crawler_name
+    bucket_name       = module.s3_data.bucket_name
+    bucket_arn        = module.s3_data.bucket_arn
+
+    environment {
+    variables = {
+    CRAWLER_NAME = module.glue.glue_crawler_name
+   }
+  }
+}
+
 
 
 module "kinesis" {
     source = "../../modules/kinesis"
     owner = "empresa"
+    project_name = var.project_name
+    environment  = var.environment
     kms_key_id = module.kms.kms_key_arn
 }
 
@@ -80,6 +95,8 @@ module "athena" {
 module "glue" {
     source = "../../modules/glue"
     bucket_arn = module.s3_data.bucket_arn
-    s3_target = "s3://${module.s3_data.bucket_id}/events/"
+    bucket_name = module.s3_data.bucket_name
    
+    s3_target = "s3://${module.s3_data.bucket_id}processed/events/"
+    
 }

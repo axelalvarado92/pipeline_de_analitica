@@ -29,3 +29,16 @@ variable "s3_target" {
   
 }
 
+variable "bucket_name" {
+    description = "The Name of the bucket for target path"
+    type = string
+  
+}
+
+variable "data_prefix" {
+    description = "The prefix of the data in the bucket"
+    type = string
+    default = "processed/events/"
+  
+}
+

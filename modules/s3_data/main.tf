@@ -11,3 +11,13 @@ resource "aws_s3_bucket_versioning" "versioning_bucket" {
   }
 }
 
+resource "aws_s3_bucket_notification" "trigger" {
+  bucket = var.bucket_name
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.trigger_glue.arn
+    events              = ["s3:ObjectCreated:*"]
+
+    filter_prefix = "processed/events/"
+  }
+}

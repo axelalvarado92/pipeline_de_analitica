@@ -18,7 +18,7 @@ resource "aws_glue_crawler" "crawler_s3" {
 })
 
   s3_target {
-    path = var.s3_target
+    path = "s3://${var.bucket_name}/${var.data_prefix}"
   }
 
   schema_change_policy {
