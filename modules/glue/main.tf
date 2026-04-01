@@ -18,7 +18,7 @@ resource "aws_glue_crawler" "crawler_s3" {
 })
 
   s3_target {
-    path = "s3://${var.bucket_name}/${var.data_prefix}"
+    path = "s3://${var.bucket_name}/${var.data_prefix}"  ### utilizo data data_prefix para hacer el modulo reutilizable
   }
 
   schema_change_policy {

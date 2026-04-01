@@ -13,6 +13,7 @@ def lambda_handler(event, context):
     print(json.dumps(event, indent=2))
 
     bucket_name = os.environ["BUCKET_NAME"]
+    kms_key_id = os.environ["KMS_KEY_ID"]
 
     for record in event['Records']:
         try:
@@ -31,17 +32,24 @@ def lambda_handler(event, context):
             print("Payload procesado:")
             print(json.dumps(payload, indent=2))
 
-            # 5. Generar path dinámico (particionado)
-            key = f"events/year={year}/month={month}/day={day}/{uuid}.json"
+            # 5. Generar fecha actual (para particionado)
+            now = datetime.utcnow()
+            year = now.year
+            month = now.month
+            day = now.day
+
+            # 6. Generar path dinámico
+            key = f"processed/events/year={year}/month={month}/day={day}/{uuid.uuid4()}.json"
 
             print(f"Guardando en S3 → {key}")
 
-            # 6. Guardar en S3
+            # 7. Guardar en S3
             s3.put_object(
                 Bucket=bucket_name,
                 Key=key,
                 Body=json.dumps(payload),
-                ContentType="application/json"
+                ServerSideEncryption="aws:kms",
+                SSEKMSKeyId=kms_key_id
             )
 
         except Exception as e:

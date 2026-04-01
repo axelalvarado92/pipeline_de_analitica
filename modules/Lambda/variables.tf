@@ -47,6 +47,7 @@ variable "environment_variables" {
 variable "kinesis_arns" {
     description = "The arns of the kinesis streams"
     type = list(string)
+    default = []
   
 }
 
@@ -65,5 +66,20 @@ variable "kms_key_arn" {
 variable "bucket_arn" {
     description = "The arn of the bucket"
     type = string
+    default = null
+  
+}
+
+variable "bucket_name" {
+    description = "The name of the bucket"
+    type = string
+    default = null
+  
+}
+
+variable "glue_crawler_name" {
+    description = "The name of the glue crawler"
+    type = string
+    default = null
   
 }

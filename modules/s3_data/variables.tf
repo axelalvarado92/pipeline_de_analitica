@@ -9,3 +9,7 @@ variable "tags" {
     type = map(string)
   
 }
+
+variable "lambda_trigger_arn" {
+  type = string
+}
