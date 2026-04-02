@@ -117,3 +117,12 @@ module "glue" {
     s3_target = "s3://${module.s3_data.bucket_id}processed/events/"
     
 }
+
+data "aws_caller_identity" "current" {}
+
+module "quicksight" {
+    source = "../../modules/quicksight"
+    aws_account_id = data.aws_caller_identity.current.account_id
+    glue_database = module.glue.glue_database_name
+    quicksight_user_arn = "arn:aws:quicksight:us-east-1:426718765503:user/default/Axel"
+}
