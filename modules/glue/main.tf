@@ -1,12 +1,11 @@
 resource "aws_glue_catalog_database" "pipeline_events_db" {
-  name = "${var.project_name}-${var.environment}-events-db"
+  name = "${var.prefix}-events-db"
 }
 
 resource "aws_glue_crawler" "crawler_s3" {
   database_name = aws_glue_catalog_database.pipeline_events_db.name
-  name          = "${var.project_name}-${var.environment}-crawler"
+  name          = "${var.prefix}-events-crawler"
   role          = aws_iam_role.glue_role.arn
-  schedule      = "cron(0 * * * ? *)"
 
   configuration = jsonencode({
   Version = 1.0,
@@ -28,7 +27,7 @@ resource "aws_glue_crawler" "crawler_s3" {
 }
 
 resource "aws_iam_role" "glue_role" {
-  name = "${var.project_name}-${var.environment}-glue-role"
+  name = "${var.prefix}-glue-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -57,7 +56,7 @@ data "aws_iam_policy_document" "glue_policy_doc" {
         ]
         resources = [
              "${var.bucket_arn}",
-             "${var.bucket_arn}/*"
+             "${var.bucket_arn}/${var.data_prefix}*"
         ]
     }
 
@@ -71,10 +70,19 @@ data "aws_iam_policy_document" "glue_policy_doc" {
              "${var.bucket_arn}/*"
         ]
     }
+
+    statement {
+        effect = "Allow"
+        actions = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey"
+        ]
+  resources = [var.kms_key_arn]
+  }
 }
 
 resource "aws_iam_policy" "glue_policy" {
-    name        = "${var.project_name}-${var.environment}-glue-policy"
+    name        = "${var.prefix}-glue-policy"
     policy      = data.aws_iam_policy_document.glue_policy_doc.json
   
 }

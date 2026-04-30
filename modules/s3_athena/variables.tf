@@ -14,3 +14,14 @@ variable "kms_key_arn" {
     type = string
   
 }
+
+variable "prefix" {
+    description = "The prefix for the S3 bucket logging"
+    type = string
+  
+}
+
+variable "log_bucket" {
+  description = "name of bucket log"
+    type = string
+}

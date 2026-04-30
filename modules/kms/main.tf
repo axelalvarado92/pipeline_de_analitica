@@ -1,5 +1,5 @@
 resource "aws_kms_alias" "kms_alias" {
-  name          = "alias/${var.project_name}-${var.environment}-kinesis-key"
+  name          = "alias/${var.prefix}"
   target_key_id = aws_kms_key.primary_key.id
 }
 
@@ -16,20 +16,17 @@ data "aws_caller_identity" "current" {}
 
 data "aws_iam_policy_document" "kms_policy_doc" {
   statement {
-    sid    = "EnableRootAccess"
-    effect = "Allow"
+   sid    = "EnableRootAccess"
+   effect = "Allow"
 
-    principals {
-      type        = "AWS"
-      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
-    }
-
-    actions = [
-      "kms:*"
-    ]
-
-    resources = ["*"]
+  principals {
+    type        = "AWS"
+    identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
   }
+
+  actions = ["kms:*"]
+  resources = ["*"]
+}
 
   statement {
     sid = "EnableKinesis"
@@ -44,16 +41,17 @@ data "aws_iam_policy_document" "kms_policy_doc" {
       "kms:GenerateDataKey",
       "kms:Decrypt",
       "kms:Encrypt",
-      "kms:DescribeKey"
+      "kms:DescribeKey",
+      "kms:ReEncrypt*"
     ]
 
     resources = ["*"]
 
-    #condition {
-    #  test     = "ArnEquals"
-    #  variable = "aws:SourceArn"
-    #  values   = [var.source_arn]
-    #}
+    condition {
+      test     = "ArnEquals"
+      variable = "aws:SourceArn"
+      values   = var.sources_arns
+    }
 
     condition {
       test     = "StringEquals"

@@ -22,3 +22,15 @@ variable "environment" {
     default = "dev"
   
 }
+
+variable "tenant" {
+    description = "Nombre del Cliente"
+    type = string
+    default = ""
+  
+}
+
+variable "prefix" {
+    description = "the name of prefix for resources"
+    type = string
+}

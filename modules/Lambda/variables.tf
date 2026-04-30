@@ -83,3 +83,31 @@ variable "glue_crawler_name" {
     default = null
   
 }
+
+variable "resource_name" {
+    description = "The name of the resource (used for tagging)"
+    type = string
+    default = ""
+  
+}
+
+variable "glue_crawler_arn" {
+    description = "The arn of the glue crawler"
+    type = string
+    default = null
+  
+}
+
+variable "prefix" {
+    description = "The prefix for the resource name"
+    type = string
+    default = ""
+  
+}
+
+variable "enable_s3_trigger" {
+    description = "Enable s3 trigger for lambda"
+    type = bool
+    default = false
+  
+}

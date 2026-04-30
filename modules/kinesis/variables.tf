@@ -22,3 +22,8 @@ variable "owner" {
     description = "The name of the Owner"
     type = string  
 }
+
+variable "prefix" {
+    description = "the name of prefix for resources"
+    type = string
+}

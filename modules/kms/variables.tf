@@ -17,8 +17,20 @@ variable "tags" {
   
 }
 
-variable "source_arn" {
+variable "sources_arns" {
     description = "ARN Kinesis source"
-    type = string
+    type = list(string)
+    default = []
   
+}
+
+variable "prefix" {
+    description = "the name of prefix for resources"
+    type = string
+}
+
+variable "lambda_role_arn" {
+    description = "ARN del rol de Lambda"
+    type = string
+    default = "null"
 }

@@ -20,7 +20,7 @@ resource "aws_lambda_function" "generic_lambda" {
 # IAM Role
 ########################################
 resource "aws_iam_role" "lambda_role" {
-  name = "${var.function_name}-role"
+  name = "${var.resource_name}-lambda-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -71,7 +71,9 @@ data "aws_iam_policy_document" "lambda_policy_doc" {
 
     actions = [
       "kms:Decrypt",
-      "kms:GenerateDataKey"
+      "kms:GenerateDataKey",
+      "kms:DescribeKey",
+      "kms:ReEncrypt*"
     ]
 
     resources = [var.kms_key_arn]
@@ -97,8 +99,14 @@ data "aws_iam_policy_document" "lambda_policy_doc" {
 
       condition {
         test     = "StringEquals"
-        variable = "s3:x-amz-server-side-encryption"   ### Obliga a que todo lo que escriba Lambda esté encriptado
+        variable = "s3:x-amz-server-side-encryption"
         values   = ["aws:kms"]
+      }
+
+      condition {
+        test     = "StringEquals"
+        variable = "s3:x-amz-server-side-encryption-aws-kms-key-id"
+        values   = [var.kms_key_arn]
       }
     }
   }
@@ -140,7 +148,13 @@ data "aws_iam_policy_document" "lambda_policy_doc" {
       "glue:StartCrawler"
     ]
 
-    resources = ["*"] 
+    resources = var.glue_crawler_arn != null ? [var.glue_crawler_arn] : []
+
+    condition {
+     test     = "StringEquals"
+     variable = "aws:ResourceArns"
+     values   = var.glue_crawler_arn != null ? [var.glue_crawler_arn] : []
+      }
   }
 }
 
@@ -148,7 +162,7 @@ data "aws_iam_policy_document" "lambda_policy_doc" {
 # IAM Policy (SIEMPRE creada)
 ########################################
 resource "aws_iam_policy" "lambda_policy" {
-  name   = "${var.function_name}-policy"
+  name   = "${var.resource_name}-policy"
   policy = data.aws_iam_policy_document.lambda_policy_doc.json
 }
 
@@ -174,11 +188,13 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 data "aws_caller_identity" "current" {}
 
 resource "aws_lambda_permission" "allow_s3" {
-  statement_id  = "AllowS3Invoke"
+  count = var.enable_s3_trigger ? 1 : 0
+
+  statement_id  = "AllowS3Invoke-${var.function_name}"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.generic_lambda.function_name
   principal     = "s3.amazonaws.com"
 
-  source_arn     = var.bucket_arn
-  source_account = data.aws_caller_identity.current.account_id  ### da permisos de logs a la cuenta main
+  source_arn     = "${var.bucket_arn}/processed/*"
+  source_account = data.aws_caller_identity.current.account_id
 }

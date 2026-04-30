@@ -5,13 +5,13 @@ resource "aws_kms_key" "athena_key" {
 }
 
 resource "aws_kms_alias" "athena_key_alias" {
-  name          = "alias/athena-results-key"
-  target_key_id = aws_kms_key.athena_key.key_id
+  name          = "alias/${var.prefix}-athena-results-key"
+  target_key_id = aws_kms_key.athena_key.arn
 }
 
 data "aws_caller_identity" "current" {}
 
-data "aws_iam_policy_document" "ksm_athena_policy_doc" {
+data "aws_iam_policy_document" "kms_athena_policy_doc" {
   statement {
     sid    = "EnableRoot"
     effect = "Allow"
@@ -31,18 +31,20 @@ data "aws_iam_policy_document" "ksm_athena_policy_doc" {
       "kms:Encrypt",
       "kms:Decrypt",
       "kms:GenerateDataKey",
-      "kms:DescribeKey"
+      "kms:DescribeKey",
+      "kms:ReEncrypt*"
     ]
-    resources = ["*"]
+    resources = [aws_kms_key.athena_key.arn]
 
-    principals {
-      type        = "Service"
-      identifiers = ["athena.amazonaws.com"]
+    condition {
+        test     = "StringEquals"
+        variable = "aws:SourceAccount"
+        values   = [data.aws_caller_identity.current.account_id]
+      }      
     }
   }
-}
 
 resource "aws_kms_key_policy" "kms_athena_policy" {
   key_id = aws_kms_key.athena_key.id
-  policy = data.aws_iam_policy_document.ksm_athena_policy_doc.json
+  policy = data.aws_iam_policy_document.kms_athena_policy_doc.json
 }

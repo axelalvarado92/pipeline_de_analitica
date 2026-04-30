@@ -13,3 +13,15 @@ variable "tags" {
 variable "lambda_trigger_arn" {
   type = string
 }
+
+variable "kms_key_arn" {
+    description = "ARN of kms key"
+    type = string
+  
+}
+
+variable "data_prefix" {
+    description = "Prefix for log files"
+    type = string
+  
+}
