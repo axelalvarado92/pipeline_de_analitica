@@ -46,9 +46,3 @@ variable "prefix" {
     description = "the name of prefix for resources"
     type = string
 }
-
-variable "kms_key_arn" {
-    description = "KMS key arn for encryption"
-    type = string
-    default = ""
-}

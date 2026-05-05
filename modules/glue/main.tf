@@ -17,7 +17,7 @@ resource "aws_glue_crawler" "crawler_s3" {
 })
 
   s3_target {
-    path = "s3://${var.bucket_name}/${var.data_prefix}"  ### utilizo data data_prefix para hacer el modulo reutilizable
+    path = "s3://${var.bucket_name}/processed/events/"  ### utilizo data data_prefix para hacer el modulo reutilizable
   }
 
   schema_change_policy {
@@ -70,15 +70,6 @@ data "aws_iam_policy_document" "glue_policy_doc" {
              "${var.bucket_arn}/*"
         ]
     }
-
-    statement {
-        effect = "Allow"
-        actions = [
-          "kms:Decrypt",
-          "kms:GenerateDataKey"
-        ]
-  resources = [var.kms_key_arn]
-  }
 }
 
 resource "aws_iam_policy" "glue_policy" {

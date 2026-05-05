@@ -20,7 +20,7 @@ resource "aws_lambda_function" "generic_lambda" {
 # IAM Role
 ########################################
 resource "aws_iam_role" "lambda_role" {
-  name = "${var.resource_name}-lambda-role"
+  name = "${var.resource_name}-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -40,13 +40,41 @@ resource "aws_iam_role" "lambda_role" {
 # IAM Policy Document (BASE)
 ########################################
 data "aws_iam_policy_document" "lambda_policy_doc" {
+  statement {
+    sid = "BaseLogsAccess"
+
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+
+    resources = ["*"]
+  }
+#########################################
+# Permisos Glue
+##########################################
+ dynamic "statement" {
+  for_each = var.glue_crawler_arn != null && var.glue_crawler_arn != "" ? [1] : []
+
+  content {
+    sid = "GlueStartCrawler"
+
+    actions = [
+      "glue:StartCrawler",
+      "glue:GetCrawler",
+      "glue:GetCrawlerMetrics"
+    ]
+
+    resources = [var.glue_crawler_arn]
+  }
+}
 
   ########################################
   # Kinesis (solo si existe)
   ########################################
   dynamic "statement" {
-    for_each = length(var.kinesis_arns) > 0 ? [1] : []
-
+    for_each = length(compact(var.kinesis_arns)) > 0 ? [1] : []
     content {
       sid = "KinesisAccess"
 
@@ -62,28 +90,12 @@ data "aws_iam_policy_document" "lambda_policy_doc" {
       resources = var.kinesis_arns
     }
   }
-
-  ########################################
-  # KMS
-  ########################################
-  statement {
-    sid = "KMSAccess"
-
-    actions = [
-      "kms:Decrypt",
-      "kms:GenerateDataKey",
-      "kms:DescribeKey",
-      "kms:ReEncrypt*"
-    ]
-
-    resources = [var.kms_key_arn]
-  }
-
   ########################################
   # S3 Object Access (solo processed/)
   ########################################
   dynamic "statement" {
-    for_each = var.bucket_arn != null ? [1] : []
+    for_each = (
+  var.bucket_arn != null && var.bucket_arn != "") ? [1] : []
 
     content {
       sid = "S3ObjectAccess"
@@ -94,20 +106,8 @@ data "aws_iam_policy_document" "lambda_policy_doc" {
       ]
 
       resources = [
-        "${var.bucket_arn}/processed/*"
+        "${var.bucket_arn}/*"
       ]
-
-      condition {
-        test     = "StringEquals"
-        variable = "s3:x-amz-server-side-encryption"
-        values   = ["aws:kms"]
-      }
-
-      condition {
-        test     = "StringEquals"
-        variable = "s3:x-amz-server-side-encryption-aws-kms-key-id"
-        values   = [var.kms_key_arn]
-      }
     }
   }
 
@@ -115,7 +115,8 @@ data "aws_iam_policy_document" "lambda_policy_doc" {
   # S3 ListBucket restringido
   ########################################
   dynamic "statement" {
-  for_each = var.bucket_arn != null ? [1] : []  ### Si existe hace algo, si no existe no hace nada.
+  for_each = (
+  var.bucket_arn != null && var.bucket_arn != "") ? [1] : []  ### Si existe hace algo, si no existe no hace nada.
     
     content {
     sid = "S3ListBucket"
@@ -135,28 +136,8 @@ data "aws_iam_policy_document" "lambda_policy_doc" {
     }
    }
   }
-
-  ########################################
-  # Glue (SIEMPRE disponible)
-  ########################################
-  statement {
-    sid = "GlueStartCrawler"
-
-    effect = "Allow"
-
-    actions = [
-      "glue:StartCrawler"
-    ]
-
-    resources = var.glue_crawler_arn != null ? [var.glue_crawler_arn] : []
-
-    condition {
-     test     = "StringEquals"
-     variable = "aws:ResourceArns"
-     values   = var.glue_crawler_arn != null ? [var.glue_crawler_arn] : []
-      }
-  }
 }
+
 
 ########################################
 # IAM Policy (SIEMPRE creada)
@@ -188,13 +169,13 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 data "aws_caller_identity" "current" {}
 
 resource "aws_lambda_permission" "allow_s3" {
-  count = var.enable_s3_trigger ? 1 : 0
-
-  statement_id  = "AllowS3Invoke-${var.function_name}"
+  statement_id  = "AllowS3Invoke"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.generic_lambda.function_name
   principal     = "s3.amazonaws.com"
 
-  source_arn     = "${var.bucket_arn}/processed/*"
+  source_arn = var.bucket_arn
   source_account = data.aws_caller_identity.current.account_id
+  
+  
 }

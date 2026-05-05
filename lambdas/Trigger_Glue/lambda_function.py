@@ -9,10 +9,18 @@ def lambda_handler(event, context):
 
     print(f"Disparando crawler: {crawler_name}")
 
-    try:
+    # 🔍 1. Chequear estado primero
+    crawler = glue.get_crawler(Name=crawler_name)
+    state = crawler["Crawler"]["State"]
+
+    print(f"Estado actual del crawler: {state}")
+
+    # 🧠 2. Solo iniciar si está listo
+    if state == "READY":
         glue.start_crawler(Name=crawler_name)
-    except glue.exceptions.CrawlerRunningException:
-        print("El crawler ya está corriendo, no pasa nada")
+        print("Crawler iniciado correctamente")
+    else:
+        print(f"No se inicia crawler porque está en estado: {state}")
 
     return {
         "statusCode": 200

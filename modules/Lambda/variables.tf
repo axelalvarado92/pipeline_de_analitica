@@ -57,12 +57,6 @@ variable "source_code_hash" {
   
 }
 
-variable "kms_key_arn" {
-    description = "The arn of the kms key"
-    type = string
-  
-}
-
 variable "bucket_arn" {
     description = "The arn of the bucket"
     type = string
@@ -87,7 +81,6 @@ variable "glue_crawler_name" {
 variable "resource_name" {
     description = "The name of the resource (used for tagging)"
     type = string
-    default = ""
   
 }
 
@@ -101,7 +94,6 @@ variable "glue_crawler_arn" {
 variable "prefix" {
     description = "The prefix for the resource name"
     type = string
-    default = ""
   
 }
 

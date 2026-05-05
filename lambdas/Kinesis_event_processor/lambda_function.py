@@ -13,7 +13,6 @@ def lambda_handler(event, context):
     print(json.dumps(event, indent=2))
 
     bucket_name = os.environ["BUCKET_NAME"]
-    kms_key_id = os.environ["KMS_KEY_ID"]
 
     for record in event['Records']:
         try:
@@ -48,8 +47,6 @@ def lambda_handler(event, context):
                 Bucket=bucket_name,
                 Key=key,
                 Body=json.dumps(payload),
-                ServerSideEncryption="aws:kms",
-                SSEKMSKeyId=kms_key_id
             )
 
         except Exception as e:

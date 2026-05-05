@@ -4,12 +4,6 @@ variable "s3_bucket" {
   
 }
 
-variable "kms_key_athena" {
-    description = "Athena kms key arn"
-    type = string
-  
-}
-
 variable "project_name" {
     description = "Project name"
     type = string

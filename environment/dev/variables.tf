@@ -28,3 +28,13 @@ variable "qs_user_arn" {
     default = ""
 
 }
+
+variable "tags" {
+  type = map(string)
+  default = {
+    Project = "pipeline"
+    Environment = "dev"
+    Tenant = "tenant"
+
+  }
+}

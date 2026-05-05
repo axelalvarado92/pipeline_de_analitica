@@ -7,13 +7,10 @@ locals {
 }
 
 resource "aws_kinesis_stream" "kinesis_stream" {
-    name = "${var.prefix}-events-stream"
-    retention_period = 24
-    encryption_type = "KMS"
-    kms_key_id = var.kms_key_id
-    shard_level_metrics = [
-       "ALL"
-  ]
+  name             = "${var.prefix}-events-stream"
+  retention_period = 24
+
+  shard_level_metrics = ["ALL"]
 
   stream_mode_details {
     stream_mode = "ON_DEMAND"
@@ -21,4 +18,3 @@ resource "aws_kinesis_stream" "kinesis_stream" {
 
   tags = local.common_tags
 }
-

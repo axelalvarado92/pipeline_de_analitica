@@ -12,12 +12,6 @@ variable "environment" {
   
 }
 
-variable "kms_key_id" {
-    description = "The id of the KMS key to use for encryption"
-    type = string
-
-}
-
 variable "owner" {
     description = "The name of the Owner"
     type = string  
