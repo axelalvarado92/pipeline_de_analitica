@@ -7,5 +7,5 @@ output "lambda_name" {
 }
 
 output "lambda_permission_id" {
-  value = aws_lambda_permission.allow_s3.id
+  value = length(aws_lambda_permission.allow_s3) > 0 ? aws_lambda_permission.allow_s3[0].id : null
 }

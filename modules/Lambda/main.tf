@@ -66,30 +66,10 @@ data "aws_iam_policy_document" "lambda_policy_doc" {
       "glue:GetCrawlerMetrics"
     ]
 
-    resources = [var.glue_crawler_arn]
+    resources = ["*"]
   }
 }
 
-  ########################################
-  # Kinesis (solo si existe)
-  ########################################
-  dynamic "statement" {
-    for_each = length(compact(var.kinesis_arns)) > 0 ? [1] : []
-    content {
-      sid = "KinesisAccess"
-
-      actions = [
-        "kinesis:GetRecords",
-        "kinesis:GetShardIterator",
-        "kinesis:ListShards",
-        "kinesis:DescribeStream",
-        "kinesis:DescribeStreamSummary",
-        "kinesis:ListStreams"
-      ]
-
-      resources = var.kinesis_arns
-    }
-  }
   ########################################
   # S3 Object Access (solo processed/)
   ########################################
@@ -110,6 +90,24 @@ data "aws_iam_policy_document" "lambda_policy_doc" {
       ]
     }
   }
+
+  ########################################
+# DynamoDB Dedup Access
+########################################
+dynamic "statement" {
+  for_each = var.dynamodb_table_arn != null && var.dynamodb_table_arn != "" ? [1] : []
+
+  content {
+    sid = "DynamoDBDedupAccess"
+
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:PutItem"
+    ]
+
+    resources = [var.dynamodb_table_arn]
+  }
+}
 
   ########################################
   # S3 ListBucket restringido
@@ -169,13 +167,13 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 data "aws_caller_identity" "current" {}
 
 resource "aws_lambda_permission" "allow_s3" {
+  count = var.enable_s3_trigger ? 1 : 0
+
   statement_id  = "AllowS3Invoke"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.generic_lambda.function_name
   principal     = "s3.amazonaws.com"
 
-  source_arn = var.bucket_arn
+  source_arn     = var.bucket_arn
   source_account = data.aws_caller_identity.current.account_id
-  
-  
 }

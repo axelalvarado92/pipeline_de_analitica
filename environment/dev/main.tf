@@ -1,25 +1,109 @@
 locals {
   prefix = "${var.project_name}-${var.tenant}-${var.environment}"
 }
+#####################################################################
+#                          Recursos
+#####################################################################
+  
+resource "aws_cloudwatch_event_rule" "event_rule_crawler" {
+  name        = "${local.prefix}-trigger-crawler"
+  description = "Dispara el crawler cuando se suben objetos a processed/events"
 
-resource "aws_lambda_event_source_mapping" "lambda_trigger" {
-    event_source_arn = module.kinesis.kinesis_arns
-    function_name = module.kinesis_event_processor.lambda_name
-    starting_position = "LATEST"
-    batch_size = 1           ### Dejo uno para testing
+  event_pattern = jsonencode({
+    source = ["aws.s3"]
+    detail-type = ["Object Created"]
 
-    depends_on = [
-      module.kinesis,
-      module.kinesis_event_processor
+    detail = {
+      bucket = {
+        name = ["${local.prefix}-data-47148"]
+      }
+
+      object = {
+        key = [
+          {
+            prefix = "processed/events/"
+          }
+        ]
+      }
+    }
+  })
+}
+
+resource "aws_cloudwatch_event_target" "event_target_crawler" {
+  target_id = "${local.prefix}-trigger-crawler-target"
+  rule = aws_cloudwatch_event_rule.event_rule_crawler.name
+  arn  = module.trigger_glue.lambda_arn
+
+  depends_on = [
+    aws_cloudwatch_event_rule.event_rule_crawler,
+    module.trigger_glue
   ]
 }
+
+resource "aws_lambda_permission" "event_rule_permission" {
+  statement_id  = "${local.prefix}-event-rule-permission"
+  action        = "lambda:InvokeFunction"
+  function_name = module.trigger_glue.lambda_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.event_rule_crawler.arn
+
+  depends_on = [
+    aws_cloudwatch_event_rule.event_rule_crawler,
+    module.trigger_glue
+  ]
+
+}
+
+resource "aws_dynamodb_table" "pipeline_dedup" {
+  name         = "${local.prefix}-dedup"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "event_id"
+
+  attribute {
+    name = "event_id"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "expires_at"
+    enabled        = true
+  }
+}
+
+resource "aws_s3_bucket_notification" "events_notification" {
+  bucket = module.s3_data.bucket_name
+
+  lambda_function {
+  id                  = "raw-to-processed"
+  lambda_function_arn = module.s3_event_processor.lambda_arn
+  events              = ["s3:ObjectCreated:*"]
+  filter_prefix       = "raw/events/"
+}
+
+lambda_function {
+  id                  = "processed-to-glue"
+  lambda_function_arn = module.trigger_glue.lambda_arn
+  events              = ["s3:ObjectCreated:*"]
+  filter_prefix       = "processed/events/"
+}
+
+ depends_on = [
+  module.s3_event_processor,
+  module.trigger_glue,
+  module.s3_event_processor.lambda_permission,
+  module.trigger_glue.lambda_permission
+]
   
+}
 
+##############################################################
+#                        Lambdas
+##############################################################
 
-data "archive_file" "kinesis_event_processor_zip" {
+data "archive_file" "s3_event_processor_zip" {
   type        = "zip"
-  source_dir  = "${path.module}/../../lambdas/kinesis_event_processor"
-  output_path = "${path.module}/../../build/kinesis_event_processor.zip"
+  source_dir  = "${path.module}/../../lambdas/s3_event_processor"
+  output_path = "${path.module}/../../build/s3_event_processor.zip"
 }
 
 data "archive_file" "trigger_glue_zip" {
@@ -28,20 +112,21 @@ data "archive_file" "trigger_glue_zip" {
   output_path = "${path.module}/../../build/trigger_glue.zip"
 }
 
-module "kinesis_event_processor" {
+module "s3_event_processor" {
   source = "../../modules/lambda"
   prefix = local.prefix
-  resource_name = "${local.prefix}-kinesis-event-processor"
+  resource_name = "${local.prefix}-s3-event-processor"
 
-  function_name = "${local.prefix}-kinesis-event-processor"
+  function_name = "${local.prefix}-s3-event-processor"
   handler       = "lambda_function.lambda_handler"
 
-  filename         = data.archive_file.kinesis_event_processor_zip.output_path
-  source_code_hash = data.archive_file.kinesis_event_processor_zip.output_base64sha256
+  filename         = data.archive_file.s3_event_processor_zip.output_path
+  source_code_hash = data.archive_file.s3_event_processor_zip.output_base64sha256
 
   memory_size = 128
 
-  kinesis_arns = [module.kinesis.kinesis_arns]
+  enable_s3_trigger = true
+  dynamodb_table_arn = aws_dynamodb_table.pipeline_dedup.arn
 
   bucket_arn  = module.s3_data.bucket_arn
 
@@ -50,6 +135,9 @@ module "kinesis_event_processor" {
     TENANT      = var.tenant
     ENV         = var.environment
     PROJECT     = var.project_name
+    DYNAMODB_TABLE = aws_dynamodb_table.pipeline_dedup.name
+    PIPELINE_MODE = "batch"
+    COOLDOWN_SECONDS = "300"
   }
 }
 
@@ -64,24 +152,21 @@ module "trigger_glue" {
   filename         = data.archive_file.trigger_glue_zip.output_path
   source_code_hash = data.archive_file.trigger_glue_zip.output_base64sha256
 
+  enable_s3_trigger = true
+ 
+  glue_crawler_arn = module.glue.glue_crawler_arn
+
   memory_size = 128
 
- glue_crawler_arn = module.glue.glue_crawler_arn
-
   environment_variables = {
-    CRAWLER_NAME = module.glue.glue_crawler_arn
+    CRAWLER_NAME = module.glue.glue_crawler_name
     TENANT      = var.tenant
   }
 }
 
-
-module "kinesis" {
-    source = "../../modules/kinesis"
-    prefix = local.prefix
-    owner = var.tenant
-    project_name = var.project_name
-    environment  = var.environment
-}
+##############################################################
+#                        S3
+##############################################################
 
 module "s3_data" {
   source = "../../modules/s3"
@@ -99,21 +184,6 @@ module "s3_data" {
 
 }
 
-resource "aws_s3_bucket_notification" "events_notification" {
-  bucket = module.s3_data.bucket_name
-
-  lambda_function {
-    lambda_function_arn = module.trigger_glue.lambda_arn
-    events              = ["s3:ObjectCreated:*"]
-    filter_prefix       = "processed/events/"
-  }
-
-  depends_on = [
-    module.trigger_glue,
-    module.trigger_glue.lambda_permission
-  ]
-}
-
 module "s3_logs" {
   source = "../../modules/s3"
 
@@ -128,6 +198,8 @@ module "s3_athena" {
   prefix       = local.prefix
   tenant       = var.tenant
 }
+
+###################################################################
 
 module "athena" {
     source = "../../modules/athena"
@@ -145,7 +217,9 @@ module "glue" {
     s3_target = "s3://${module.s3_data.bucket_id}/processed/events/"
     
 }
-
+######################################################################
+#                        QuickSight
+######################################################################
 data "aws_caller_identity" "current" {}
 
 module "qs_datasource" {

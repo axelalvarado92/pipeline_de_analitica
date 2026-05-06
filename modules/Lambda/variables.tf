@@ -44,11 +44,10 @@ variable "environment_variables" {
   
 }
 
-variable "kinesis_arns" {
-    description = "The arns of the kinesis streams"
-    type = list(string)
-    default = []
-  
+variable "dynamodb_table_arn" {
+    description = "The arn of the dynamodb table"
+    type = string
+    default = null
 }
 
 variable "source_code_hash" {
@@ -71,12 +70,6 @@ variable "bucket_name" {
   
 }
 
-variable "glue_crawler_name" {
-    description = "The name of the glue crawler"
-    type = string
-    default = null
-  
-}
 
 variable "resource_name" {
     description = "The name of the resource (used for tagging)"

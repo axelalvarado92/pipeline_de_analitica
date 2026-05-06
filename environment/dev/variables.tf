@@ -38,3 +38,8 @@ variable "tags" {
 
   }
 }
+
+variable "dynamodb_table_arn" {
+  type = string
+  default = null
+}
