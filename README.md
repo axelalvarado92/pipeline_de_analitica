@@ -24,19 +24,6 @@ Kinesis → Lambda → S3 → Glue → Athena → QuickSight → AI SQL Agent
 
 # ⚙️ Main Components
 
-## 🔹 Amazon Kinesis
-
-Used for real-time event ingestion.
-
-Example events:
-
-* sales
-* customer interactions
-* chatbot conversations
-* marketing events
-
----
-
 ## 🔹 AWS Lambda
 
 Processes incoming events automatically.
