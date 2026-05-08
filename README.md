@@ -17,7 +17,7 @@ The goal is to create a scalable platform capable of:
 The pipeline follows an event-driven architecture:
 
 ```text id="pipeline-flow"
-Kinesis → Lambda → S3 → Glue → Athena → QuickSight → AI SQL Agent
+Lambda → S3 → Glue → Athena → QuickSight → AI SQL Agent
 ```
 
 ---
