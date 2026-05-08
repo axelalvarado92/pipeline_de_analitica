@@ -1,201 +1,202 @@
-# 🧠 📊 Explicación de la arquitectura (end-to-end)
+# 🚀 Intelligent Serverless Analytics Pipeline on AWS
 
-Este proyecto implementa un **pipeline de analítica de eventos serverless en AWS**, donde se ingieren, procesan, almacenan y consultan datos de manera escalable.
+This project is an end-to-end serverless analytics architecture built on AWS, focused on real-time event processing, business intelligence, and AI-powered analytics.
 
----
+The goal is to create a scalable platform capable of:
 
-# 🚀 🔄 Flujo completo
-
-## 🧩 1. Ingesta de eventos — Kinesis
-
-Todo comienza cuando se envía un evento a **Amazon Kinesis Data Streams**.
-
-👉 Ejemplo de evento:
-
-```json
-{
-  "user_id": "123",
-  "event_type": "purchase"
-}
-```
-
-📌 Kinesis actúa como un **stream de datos en tiempo real**, permitiendo:
-
-* alta escalabilidad
-* procesamiento asíncrono
-* desacoplar productores y consumidores
+* ingesting events in real time
+* processing and enriching data automatically
+* storing analytical datasets
+* generating dashboards for business insights
+* enabling natural language analytics through AI agents
 
 ---
 
-## 🧩 2. Procesamiento — AWS Lambda
+# 🧩 Architecture Overview
 
-Kinesis está conectado a una función Lambda mediante un:
+The pipeline follows an event-driven architecture:
 
-👉 `event_source_mapping`
-
----
-
-### 🔄 ¿Qué hace Lambda?
-
-Por cada evento:
-
-1. Recibe el batch desde Kinesis
-2. Decodifica el mensaje (base64)
-3. Lo transforma a JSON
-4. Genera una estructura de almacenamiento
-5. Guarda el evento en S3
-
----
-
-### 📌 Ejemplo de almacenamiento:
-
-```bash
-s3://pipeline-data-dev/events/2026/03/28/archivo.json
+```text id="pipeline-flow"
+Kinesis → Lambda → S3 → Glue → Athena → QuickSight → AI SQL Agent
 ```
 
 ---
 
-👉 Esto implementa un patrón de:
+# ⚙️ Main Components
 
-💥 **Data Lake (raw events)**
+## 🔹 Amazon Kinesis
 
----
+Used for real-time event ingestion.
 
-## 🧩 3. Almacenamiento — Amazon S3
+Example events:
 
-Los datos se almacenan en un bucket S3 que actúa como:
-
-👉 **capa de persistencia**
-
-Características:
-
-* altamente disponible
-* barato
-* desacoplado del procesamiento
+* sales
+* customer interactions
+* chatbot conversations
+* marketing events
 
 ---
 
-👉 Además:
+## 🔹 AWS Lambda
 
-✔️ versionado habilitado
-✔️ encriptación con KMS
-✔️ estructura particionada por fecha
+Processes incoming events automatically.
 
----
+Responsibilities:
 
-## 🧩 4. Catalogación — AWS Glue Crawler
+* decode records
+* validate payloads
+* enrich data
+* organize files into partitioned S3 paths
 
-Aquí entra **AWS Glue**
+Example:
 
----
-
-### 🔍 ¿Qué hace el Crawler?
-
-1. Escanea los archivos en S3
-2. Detecta automáticamente el schema (JSON)
-3. Crea/actualiza una tabla en el Data Catalog
-
----
-
-📌 Esto permite:
-
-💥 convertir archivos sin estructura en datos consultables
-
----
-
-## 🧩 5. Metadata — Glue Data Catalog
-
-Glue crea:
-
-* una **database**
-* una **tabla (ej: events)**
-
----
-
-👉 Esta tabla apunta a:
-
-```bash
-s3://pipeline-data-dev/events/
+```text id="s3-structure"
+processed/events/year=2026/month=5/day=7/
 ```
 
 ---
 
-## 🧩 6. Consulta — Amazon Athena
+## 🔹 Amazon S3
 
-Athena permite ejecutar SQL directamente sobre S3.
+Acts as the data lake for raw and processed events.
+
+Features:
+
+* encrypted storage with AWS KMS
+* lifecycle policies
+* modular bucket structure
+* analytics-ready storage
 
 ---
 
-### 🔍 Ejemplo:
+## 🔹 AWS Glue
 
-```sql
-SELECT * FROM events LIMIT 10;
+Automatically crawls S3 data and creates analytical schemas.
+
+This enables:
+
+* automatic table discovery
+* schema generation
+* ETL-ready datasets
+
+---
+
+## 🔹 Amazon Athena
+
+Provides serverless SQL querying directly over S3 data.
+
+Benefits:
+
+* no database servers required
+* pay-per-query model
+* scalable analytics
+
+---
+
+## 🔹 Amazon QuickSight
+
+Used for business dashboards and visualization.
+
+Examples:
+
+* sales performance
+* lead conversion
+* destination trends
+* operational KPIs
+
+---
+
+# 🤖 AI SQL Agent (In Progress)
+
+One of the most important parts of the project is the AI analytics assistant.
+
+The idea is to allow users to ask questions in natural language such as:
+
+```text id="ai-example"
+"What destination generated the most sales this month?"
 ```
 
----
+The AI agent will:
 
-👉 Athena:
+1. interpret the question
+2. generate SQL automatically
+3. query Athena
+4. return insights or dashboard-ready responses
 
-1. Lee los datos desde S3
-2. Usa el schema definido por Glue
-3. Ejecuta la query
+Technologies:
 
----
-
-## 🧩 7. Resultados — S3 (Athena bucket)
-
-Los resultados de la query se guardan en otro bucket:
-
-```bash
-s3://pipeline-athena-results-dev/
-```
+* OpenAI API
+* AWS Lambda
+* Athena
+* Prompt engineering
 
 ---
 
-👉 Este bucket es:
+# 🛠️ Infrastructure as Code
 
-💥 SOLO para resultados de consultas
+The entire architecture is managed using Terraform.
 
----
+Advantages:
 
-# 🧠 📌 Componentes clave y su rol
-
-| Componente   | Rol                               |
-| ------------ | --------------------------------- |
-| Kinesis      | ingesta de eventos en tiempo real |
-| Lambda       | procesamiento y transformación    |
-| S3 (data)    | almacenamiento de eventos         |
-| Glue Crawler | detección de schema               |
-| Glue Catalog | metadata                          |
-| Athena       | consultas SQL                     |
-| S3 (results) | resultados de queries             |
+* reusable infrastructure
+* modular design
+* easier scaling
+* reproducible environments
 
 ---
 
-# 🔐 Seguridad
+# 🔐 Security
 
-La arquitectura incluye:
+Implemented security practices include:
 
-* IAM roles para cada servicio
-* KMS para encriptación
-* acceso controlado a S3
+* AWS KMS encryption
+* isolated IAM roles
+* bucket access restrictions
+* serverless least-privilege approach
 
 ---
 
-# ⚡ Ventajas de esta arquitectura
+# 📈 Project Goals
 
-### 🚀 Escalabilidad
+This project aims to simulate a real-world modern analytics platform for:
 
-* Kinesis + Lambda escalan automáticamente
+* travel agencies
+* small businesses
+* AI-powered business dashboards
+* event-driven SaaS architectures
 
-### 💰 Costos
+---
 
-* serverless → pagás por uso
+# 🚀 Future Improvements
 
-### 🔄 Desacoplamiento
+* AI-generated dashboards
+* automated lead scoring
+* conversational analytics
+* multi-tenant SaaS support
+* Bedrock/OpenAI hybrid agents
+* real-time anomaly detection
 
-* cada componente es independiente
+---
 
-### 📊 Analítica en tiempo casi real
+# 🧠 Technologies Used
+
+* AWS Lambda
+* Amazon Kinesis
+* Amazon S3
+* AWS Glue
+* Amazon Athena
+* Amazon QuickSight
+* AWS KMS
+* Terraform
+* OpenAI API
+
+---
+
+# 👨‍💻 Author
+
+[Axel Mariano Alvarado - LinkedIn](https://www.linkedin.com/in/axel-m-alvarado/?utm_source=chatgpt.com)
+
+[GitHub Profile](https://github.com/axelalvarado92?utm_source=chatgpt.com)
+
 
 * datos disponibles rápidamente en Athena
