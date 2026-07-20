@@ -1,6 +1,6 @@
 # 🚀 Intelligent Serverless Analytics Pipeline on AWS
 
-This project is an end-to-end serverless analytics architecture built on AWS, focused on real-time event processing, business intelligence, and AI-powered analytics.
+This project is an end-to-end serverless analytics architecture built on AWS, focused on business intelligence, and AI-powered analytics.
 
 The goal is to create a scalable platform capable of:
 
